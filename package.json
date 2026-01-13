@@ -26,8 +26,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "alfaz-studio",
-        "repo": "sonacove-electron"
+        "owner": "Zaid0412",
+        "repo": "jitsi-meet-electron"
       }
     ],
     "files": [
