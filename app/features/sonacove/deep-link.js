@@ -1,7 +1,10 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
+const sonacoveConfig = require('./config');
+
 let macDeepLinkUrl = null;
+let pendingStartupDeepLink = null;
 
 /**
  * Finds the main visible application window to receive deep link events.
@@ -37,7 +40,6 @@ function registerProtocol() {
 function setupMacDeepLinkListener() {
     app.on('open-url', (event, url) => {
         event.preventDefault();
-        console.log('🍎 Mac Open URL Event:', url);
         macDeepLinkUrl = url;
         const win = getMainWindow();
 
@@ -57,12 +59,11 @@ function processDeepLinkOnStartup() {
         const url = process.argv.find(arg => arg.startsWith('sonacove://'));
 
         if (url) {
-            console.log('🪟 Windows/Linux Startup URL:', url);
-            setTimeout(() => navigateDeepLink(url), 1000);
+            pendingStartupDeepLink = url;
         }
     }
     if (macDeepLinkUrl) {
-        setTimeout(() => navigateDeepLink(macDeepLinkUrl), 1000);
+        pendingStartupDeepLink = macDeepLinkUrl;
         macDeepLinkUrl = null;
     }
 }
@@ -72,14 +73,14 @@ function processDeepLinkOnStartup() {
  * Handles auth callbacks, logout, and standard navigation.
  *
  * @param {string} deepLink - The deep link URL to process.
- * @returns {void}
+ * @returns {boolean} Success status.
  */
 function navigateDeepLink(deepLink) {
     // 1. Handle Auth Callback
     if (deepLink.includes('auth-callback')) {
         handleAuthCallback(deepLink);
 
-        return;
+        return true;
     }
 
     // 2. Handle Logout
@@ -94,11 +95,9 @@ function navigateDeepLink(deepLink) {
             setTimeout(() => {
                 win.webContents.send('auth-logout-complete');
             }, 500);
-        } else {
-            console.error('❌ Could not find Main Window to send logout');
         }
 
-        return;
+        return true;
     }
 
     // 3. Handle Standard Navigation
@@ -112,9 +111,38 @@ function navigateDeepLink(deepLink) {
             rawPath = rawPath.slice(0, -1);
         }
 
-        const targetUrl = `https://${rawPath}`;
+        // Check if this is a meeting link
+        if (rawPath.startsWith('meet/')) {
+            // For meeting links, use the meetRoot config
+            const meetPath = rawPath.replace('meet/', '');
+            const meetRoot = sonacoveConfig.currentConfig.meetRoot;
 
-        console.log('🔗 Navigating to:', targetUrl);
+            // Remove trailing slash from meetRoot if it exists
+            const cleanMeetRoot = meetRoot.endsWith('/') ? meetRoot.slice(0, -1) : meetRoot;
+
+            // Construct final URL
+            const targetUrl = `${cleanMeetRoot}/${meetPath}`;
+
+            const win = getMainWindow();
+
+            if (win) {
+                win.loadURL(targetUrl);
+                if (win.isMinimized()) {
+                    win.restore();
+                }
+                win.focus();
+
+                return true;
+            }
+
+            return false;
+
+        }
+
+        // For other paths, use the landing URL
+        const landingUrl = new URL(sonacoveConfig.currentConfig.landing);
+        const origin = landingUrl.origin;
+        const targetUrl = `${origin}/${rawPath}`;
 
         const win = getMainWindow();
 
@@ -124,9 +152,17 @@ function navigateDeepLink(deepLink) {
                 win.restore();
             }
             win.focus();
+
+            return true;
         }
+
+        return false;
+
+
     } catch (error) {
-        console.error('❌ Error parsing deep link:', error);
+        console.error('Error parsing deep link:', error);
+
+        return false;
     }
 }
 
@@ -149,26 +185,18 @@ function handleAuthCallback(deepLink) {
             const win = getMainWindow();
 
             if (win) {
-                console.log('✅ Main Window found. Sending \'auth-token-received\'...');
-
                 // Focus first to ensure execution priority
                 if (win.isMinimized()) {
                     win.restore();
                 }
                 win.focus();
-                console.log('auth token rec');
 
                 // Send the data
                 win.webContents.send('auth-token-received', user);
-                console.log('📤 IPC message sent.');
-            } else {
-                console.error('❌ FATAL: Auth callback received, but Main Window not found.');
             }
-        } else {
-            console.error('❌ Auth callback URL missing payload param.');
         }
     } catch (e) {
-        console.error('❌ Auth Parsing Error', e);
+        console.error('Auth Parsing Error', e);
     }
 }
 

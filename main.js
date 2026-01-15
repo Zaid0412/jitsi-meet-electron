@@ -103,7 +103,7 @@ let webrtcInternalsWindow = null;
 const appProtocolSurplus = `${config.default.appProtocolPrefix}://`;
 let rendererReady = false;
 let protocolDataForFrontApp = null;
-
+let pendingStartupDeepLink = null;
 
 /**
  * Sets the application menu. It is hidden on all platforms except macOS because
@@ -299,7 +299,6 @@ function createJitsiMeetWindow() {
         const parsedUrl = new URL(url);
 
         if (parsedUrl.pathname.startsWith('/meet')) {
-
             const meetRootUrl = new URL(sonacoveConfig.currentConfig.meetRoot);
 
             if (parsedUrl.hostname !== meetRootUrl.hostname) {
@@ -381,7 +380,7 @@ function createJitsiMeetWindow() {
     ];
 
     mainWindow.webContents.addListener('will-redirect', (ev, url) => {
-        const requestedUrl = new URL.URL(url);
+        const requestedUrl = new URL(url);
 
         if (!allowedRedirects.includes(requestedUrl.protocol)) {
             console.warn(`Disallowing redirect to ${url}`);
@@ -416,6 +415,11 @@ function createJitsiMeetWindow() {
     });
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
+
+        // Try pending startup deeplink if we have one
+        if (pendingStartupDeepLink) {
+            navigateDeepLink(pendingStartupDeepLink);
+        }
     });
 
     /**
@@ -444,12 +448,19 @@ function createWebRTCInternalsWindow() {
  * Handler for application protocol links to initiate a conference.
  */
 function handleProtocolCall(fullProtocolCall) {
+    // Store deeplink for retry mechanism if no window exists yet
+    if (fullProtocolCall && fullProtocolCall.indexOf(appProtocolSurplus) === 0) {
+        pendingStartupDeepLink = fullProtocolCall;
+    }
+
     // don't touch when something is bad
     if (
         !fullProtocolCall
         || fullProtocolCall.trim() === ''
         || fullProtocolCall.indexOf(appProtocolSurplus) !== 0
     ) {
+        console.log('❌ Invalid protocol call, returning');
+
         return;
     }
 
@@ -460,10 +471,15 @@ function handleProtocolCall(fullProtocolCall) {
         || fullProtocolCall.includes('payload')
         || fullProtocolCall.includes('logout-callback')
     ) {
+        console.log('🔐 Auth/logout callback, using navigateDeepLink');
         navigateDeepLink(fullProtocolCall);
 
         return;
     }
+
+    // Handle standard navigation (like meeting links) directly
+    console.log('🚀 Standard navigation, using navigateDeepLink');
+    navigateDeepLink(fullProtocolCall);
 
     if (app.isReady() && mainWindow === null) {
         createJitsiMeetWindow();
@@ -512,9 +528,13 @@ app.on('certificate-error',
 );
 
 app.on('ready', () => {
-    createJitsiMeetWindow();
     setupMacDeepLinkListener();
-    processDeepLinkOnStartup();
+    createJitsiMeetWindow();
+
+    // Process deeplinks AFTER window creation
+    setTimeout(() => {
+        processDeepLinkOnStartup();
+    }, 500);
 });
 
 if (isDev) {
