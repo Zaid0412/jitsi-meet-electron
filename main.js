@@ -255,7 +255,7 @@ function createJitsiMeetWindow() {
                 buttons: [ 'Yes', 'Later' ]
             }).then(result => {
                 if (result.response === 0) {
-                    autoUpdater.quitAndInstall();
+                    autoUpdater.quitAndInstall(false, true);
                 }
             });
         });
