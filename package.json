@@ -2,7 +2,7 @@
   "name": "sonacove-meets",
   "productName": "Sonacove Meets",
   "author": "Alfaz Studio",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Sonacove Meeting App",
   "main": "./build/main.js",
   "repository": {
@@ -51,7 +51,7 @@
       "extendInfo": {
         "NSCameraUsageDescription": "Sonacove requires access to your camera for meetings.",
         "NSMicrophoneUsageDescription": "Sonacove requires access to your microphone for meetings.",
-        "NSScreenCaptureUsageDescription": "Sonacove requires access to record your screen for sharing.", 
+        "NSScreenCaptureUsageDescription": "Sonacove requires access to record your screen for sharing.",
         "NSAppleEventsUsageDescription": "Sonacove requires scripting access to control other applications."
       }
     },
