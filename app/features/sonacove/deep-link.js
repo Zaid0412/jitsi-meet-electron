@@ -113,7 +113,7 @@ function navigateDeepLink(deepLink) {
 
         // Check if this is a meeting link
         if (rawPath.startsWith('meet/')) {
-            // For meeting links, use the meetRoot config
+            // For explicit meeting links, use the meetRoot config
             const meetPath = rawPath.replace('meet/', '');
             const meetRoot = sonacoveConfig.currentConfig.meetRoot;
 
@@ -139,10 +139,30 @@ function navigateDeepLink(deepLink) {
 
         }
 
-        // For other paths, use the landing URL
-        const landingUrl = new URL(sonacoveConfig.currentConfig.landing);
-        const origin = landingUrl.origin;
-        const targetUrl = `${origin}/${rawPath}`;
+        // Treat any other non-empty path as a meeting room
+        if (rawPath && rawPath !== '' && !rawPath.includes('auth-callback') && !rawPath.includes('logout-callback')) {
+            const meetRoot = sonacoveConfig.currentConfig.meetRoot;
+            const cleanMeetRoot = meetRoot.endsWith('/') ? meetRoot.slice(0, -1) : meetRoot;
+            const targetUrl = `${cleanMeetRoot}/${rawPath}`;
+
+            const win = getMainWindow();
+
+            if (win) {
+                win.loadURL(targetUrl);
+                if (win.isMinimized()) {
+                    win.restore();
+                }
+                win.focus();
+
+                return true;
+            }
+
+            return false;
+        }
+
+        // For empty paths or other cases, use the landing URL
+        const landingUrl = sonacoveConfig.currentConfig.landing;
+        const targetUrl = landingUrl;
 
         const win = getMainWindow();
 
