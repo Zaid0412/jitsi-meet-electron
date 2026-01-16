@@ -8,14 +8,15 @@ const URLS = {
         landing: 'https://sonacove.com/dashboard',
         meetRoot: 'https://sonacove.com/meet',
         authHost: 'auth.sonacove.com',
-        allowedHosts: [ 'sonacove.com', 'auth.sonacove.com' ],
+        allowedHosts: [ 'sonacove.com', 'auth.sonacove.com', 'gravatar.com', 'customer-portal.paddle.com' ],
         defaultServerURL: 'https://sonacove.com'
     },
     staging: {
         landing: 'https://sonacove.catfurr.workers.dev/dashboard',
-        meetRoot: 'https://localhost:5173/meet/',
+        // meetRoot: 'https://localhost:5173/meet/',
+        meetRoot: 'https://ca832c9c-sona-app.catfurr.workers.dev/meet',
         authHost: 'staj.sonacove.com',
-        allowedHosts: [ 'localhost', 'sonacove.catfurr.workers.dev' ],
+        allowedHosts: ['ca832c9c-sona-app.catfurr.workers.dev', 'localhost', 'sonacove.catfurr.workers.dev', 'gravatar.com', 'sandbox-customer-portal.paddle.com', 'staj.sonacove.com' ],
         defaultServerURL: 'https://sonacove.com'
     }
 };

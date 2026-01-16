@@ -1,15 +1,13 @@
-
 import { AtlasKitThemeProvider } from '@atlaskit/theme';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Route, Switch } from 'react-router';
-import { ConnectedRouter as Router, push } from 'react-router-redux';
+import { ConnectedRouter as Router } from 'react-router-redux';
 
 import { Conference } from '../../conference';
 import config from '../../config';
 import { history } from '../../router';
-import { createConferenceObjectFromURL } from '../../utils';
 import { Welcome } from '../../welcome';
 
 /**
@@ -26,9 +24,6 @@ class App extends Component {
 
         document.title = config.appName;
 
-        this._listenOnProtocolMessages
-            = this._listenOnProtocolMessages.bind(this);
-
         this._listeners = [];
     }
 
@@ -38,10 +33,8 @@ class App extends Component {
      * @returns {void}
      */
     componentDidMount() {
-        // start listening on this events
-        const removeListener = window.jitsiNodeAPI.ipc.addListener('protocol-data-msg', this._listenOnProtocolMessages);
-
-        this._listeners.push(removeListener);
+        // Protocol handling is now done in main process via navigateDeepLink()
+        // No longer need renderer process protocol listener
 
         // send notification to main process
         window.jitsiNodeAPI.ipc.send('renderer-ready');
@@ -57,31 +50,6 @@ class App extends Component {
 
         this._listeners = [];
         listeners.forEach(removeListener => removeListener());
-    }
-
-
-    /**
-     * Handler when main process contact us.
-     *
-     * @param {string} inputURL - String with room name.
-     *
-     * @returns {void}
-     */
-    _listenOnProtocolMessages(inputURL) {
-        // Remove trailing slash if one exists.
-        if (inputURL.slice(-1) === '/') {
-            inputURL = inputURL.slice(0, -1); // eslint-disable-line no-param-reassign
-        }
-
-        const conference = createConferenceObjectFromURL(inputURL);
-
-        // Don't navigate if conference couldn't be created
-        if (!conference) {
-            return;
-        }
-
-        // change route when we are notified
-        this.props.dispatch(push('/conference', conference));
     }
 
     /**

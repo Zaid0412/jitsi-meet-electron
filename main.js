@@ -101,8 +101,6 @@ let webrtcInternalsWindow = null;
  * Add protocol data
  */
 const appProtocolSurplus = `${config.default.appProtocolPrefix}://`;
-let rendererReady = false;
-let protocolDataForFrontApp = null;
 let pendingStartupDeepLink = null;
 
 /**
@@ -464,8 +462,6 @@ function handleProtocolCall(fullProtocolCall) {
         return;
     }
 
-    const inputURL = fullProtocolCall.replace(appProtocolSurplus, '');
-
     if (
         fullProtocolCall.includes('auth-callback')
         || fullProtocolCall.includes('payload')
@@ -485,13 +481,8 @@ function handleProtocolCall(fullProtocolCall) {
         createJitsiMeetWindow();
     }
 
-    protocolDataForFrontApp = inputURL;
-
-    if (rendererReady) {
-        mainWindow
-            .webContents
-            .send('protocol-data-msg', inputURL);
-    }
+    // Note: Protocol handling now done directly in main process
+    // No longer need to forward to renderer process
 }
 
 /**
@@ -592,14 +583,8 @@ app.on('open-url', (event, data) => {
 /**
  * This is to notify main.js [this] that front app is ready to receive messages.
  */
-ipcMain.on('renderer-ready', () => {
-    rendererReady = true;
-    if (protocolDataForFrontApp) {
-        mainWindow
-            .webContents
-            .send('protocol-data-msg', protocolDataForFrontApp);
-    }
-});
+// Note: Protocol handling now done directly in main process
+// No longer need renderer-ready handler for protocol data
 
 /**
  * Handle opening external links in the main process.
